@@ -1,30 +1,56 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { router } from 'expo-router';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+} from "react-native";
+import { router } from "expo-router";
 
 const Header = () => {
   return (
     <View style={styles.header}>
 
       {/* Logo */}
-      <Text style={styles.header_text}>
-        🚗 RideShare
-      </Text>
+      <Pressable
+        onPress={() => router.push("/")}
+        style={styles.logoContainer}
+      >
+        <Text style={styles.logoIcon}>🚗</Text>
 
-      {/* Login + Signup */}
-      <View style={styles.authContainer}>
+        <Text style={styles.logoText}>
+          RideMate
+        </Text>
+      </Pressable>
 
-        <TouchableOpacity onPress={() => router.push('/login')}>
-          <Text style={styles.login}>
+      {/* Right side */}
+      <View style={styles.rightContainer}>
+
+        {/* Login */}
+        <Pressable
+          onPress={() => router.push("/login")}
+          style={({ pressed }) => [
+            styles.loginButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.loginText}>
             Login
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity onPress={() => router.push('/signup')}>
-          <Text style={styles.signup}>
+        {/* Sign Up */}
+        <Pressable
+          onPress={() => router.push("/signup")}
+          style={({ pressed }) => [
+            styles.signupButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.signupText}>
             Sign Up
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
       </View>
 
@@ -34,32 +60,70 @@ const Header = () => {
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'white',
+    height: 70,
+
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+
+    paddingHorizontal: 20,
+
+    backgroundColor: "#FFFFFF",
+
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8EEF5",
   },
 
-  header_text: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 
-  authContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
+  logoIcon: {
+    fontSize: 23,
+    marginRight: 7,
   },
 
-  login: {
+  logoText: {
+    fontSize: 21,
+    fontWeight: "700",
+    color: "#1769E0",
+  },
+
+  rightContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+
+  loginButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+
+  loginText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
+    color: "#172B4D",
   },
 
-  signup: {
+  signupButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+
+    backgroundColor: "#1769E0",
+
+    borderRadius: 8,
+  },
+
+  signupText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+
+  pressed: {
+    opacity: 0.7,
   },
 });
 
