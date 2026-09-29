@@ -7,10 +7,13 @@ const HowItWorks = () => {
 
       <Text style={styles.heading}>How it works</Text>
 
+      {/* Step 1 */}
       <View style={styles.step}>
-        <Text style={styles.number}>1</Text>
+        <View style={styles.numberContainer}>
+          <Text style={styles.number}>1</Text>
+        </View>
 
-        <View>
+        <View style={styles.content}>
           <Text style={styles.title}>Search for a ride</Text>
           <Text style={styles.description}>
             Enter your pickup and destination.
@@ -18,10 +21,13 @@ const HowItWorks = () => {
         </View>
       </View>
 
+      {/* Step 2 */}
       <View style={styles.step}>
-        <Text style={styles.number}>2</Text>
+        <View style={styles.numberContainer}>
+          <Text style={styles.number}>2</Text>
+        </View>
 
-        <View>
+        <View style={styles.content}>
           <Text style={styles.title}>Choose your ride</Text>
           <Text style={styles.description}>
             Find a ride that suits your time and budget.
@@ -29,10 +35,13 @@ const HowItWorks = () => {
         </View>
       </View>
 
+      {/* Step 3 */}
       <View style={styles.step}>
-        <Text style={styles.number}>3</Text>
+        <View style={styles.numberContainer}>
+          <Text style={styles.number}>3</Text>
+        </View>
 
-        <View>
+        <View style={styles.content}>
           <Text style={styles.title}>Book your seat</Text>
           <Text style={styles.description}>
             Confirm your booking and enjoy the journey.
@@ -46,43 +55,56 @@ const HowItWorks = () => {
 
 const styles = StyleSheet.create({
   container: {
-    margin: 16,
+    marginHorizontal: 30,
+    marginTop: 25,
     marginBottom: 30,
   },
 
   heading: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 25,
   },
 
   step: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 25,
+  },
+
+  numberContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#000',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 18,
+    marginRight: 18,
   },
 
   number: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
-    backgroundColor: '#000',
     color: '#fff',
-    textAlign: 'center',
-    paddingTop: 8,
-    fontWeight: 'bold',
-    marginRight: 12,
+    fontSize: 17,
+    fontWeight: '700',
+  },
+
+  content: {
+    flex: 1,
+    paddingTop: 2,
   },
 
   title: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111',
+    marginBottom: 5,
   },
 
   description: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#777',
-    marginTop: 3,
+    lineHeight: 20,
   },
 });
 

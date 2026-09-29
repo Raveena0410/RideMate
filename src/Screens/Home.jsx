@@ -5,6 +5,8 @@ import Header from '../Compo/Header';
 import Card from '../Compo/Card';
 import Pop from '../Compo/Popularroute';
 import How from '../Compo/HowItWorks';
+import Footer from '../Compo/Footer';
+
 
 const Home = () => {
   return (
@@ -22,6 +24,7 @@ const Home = () => {
         <Pop />
 
         <How />
+        <Footer/>
       </ScrollView>
 
     </View>
