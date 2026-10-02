@@ -9,18 +9,30 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import axios from "axios";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     console.log("Email:", email);
     console.log("Password:", password);
 
     // Later connect this with your backend
-    router.replace("/home");
+    
+    try{
+      const res=await axios.post("http://192.168.100.79:5000/api/login",
+        {email:email
+          ,password:password
+        })
+        router.replace("/Home");
+
+    } catch (error) {
+      console.error("Error occurred while logging in:", error);
+    }
+  
   };
 
   return (
@@ -44,7 +56,7 @@ export default function Login() {
 
           <TextInput
             style={styles.input}
-            placeholder="Email or phone number"
+            placeholder="Email"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
