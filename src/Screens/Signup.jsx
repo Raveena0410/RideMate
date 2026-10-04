@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import axios from "axios";
+
 import {
   View,
   Text,
@@ -8,6 +10,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
@@ -21,20 +24,70 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSignup = () => {
-    if (!name || !email || !phone || !password || !confirmPassword) {
+  // =========================
+  // SIGNUP FUNCTION
+  // =========================
+
+  const handleSignup = async () => {
+    // Check empty fields
+    if (
+      !name ||
+      !email ||
+      !phone ||
+      !password ||
+      !confirmPassword
+    ) {
       alert("Please fill all fields");
       return;
     }
 
+    // Check password
     if (password !== confirmPassword) {
       alert("Passwords do not match");
       return;
     }
 
-    alert("Account created successfully!");
+    try {
+      console.log("Creating account...");
 
-    router.replace("/home");
+      // Send data to backend
+      const response = await axios.post(
+        "http://192.168.100.79:5000/api/register",
+        {
+          name: name,
+          email: email,
+          phone: phone,
+          password: password,
+        }
+      );
+
+      console.log("Signup response:", response.data);
+
+      // Account created successfully
+      alert("Account created successfully!");
+
+      // Go to Home
+      router.replace("/Home");
+
+    } catch (error) {
+      console.error("Signup error:", error);
+
+      if (error.response) {
+        console.log(
+          "Backend error:",
+          error.response.data
+        );
+
+        alert(
+          error.response.data.message ||
+          "Signup failed"
+        );
+      } else {
+        alert(
+          "Unable to connect to the server. Please check that your backend is running."
+        );
+      }
+    }
   };
 
   return (
@@ -50,15 +103,26 @@ export default function Signup() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={25} color="#000" />
+            <Ionicons
+              name="arrow-back"
+              size={25}
+              color="#000"
+            />
           </TouchableOpacity>
 
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <Ionicons name="car-sport" size={45} color="#000" />
+            <Ionicons
+              name="car-sport"
+              size={45}
+              color="#000"
+            />
           </View>
 
-          <Text style={styles.title}>Create Account</Text>
+          {/* Title */}
+          <Text style={styles.title}>
+            Create Account
+          </Text>
 
           <Text style={styles.subtitle}>
             Join RideShare and start your journey
@@ -132,7 +196,9 @@ export default function Signup() {
             />
 
             <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
+              onPress={() =>
+                setShowPassword(!showPassword)
+              }
             >
               <Ionicons
                 name={
@@ -164,7 +230,9 @@ export default function Signup() {
 
             <TouchableOpacity
               onPress={() =>
-                setShowConfirmPassword(!showConfirmPassword)
+                setShowConfirmPassword(
+                  !showConfirmPassword
+                )
               }
             >
               <Ionicons
@@ -179,7 +247,7 @@ export default function Signup() {
             </TouchableOpacity>
           </View>
 
-          {/* Create Account */}
+          {/* Create Account Button */}
           <TouchableOpacity
             style={styles.signupButton}
             onPress={handleSignup}
@@ -193,13 +261,17 @@ export default function Signup() {
           <View style={styles.orContainer}>
             <View style={styles.line} />
 
-            <Text style={styles.orText}>OR</Text>
+            <Text style={styles.orText}>
+              OR
+            </Text>
 
             <View style={styles.line} />
           </View>
 
           {/* Google */}
-          <TouchableOpacity style={styles.googleButton}>
+          <TouchableOpacity
+            style={styles.googleButton}
+          >
             <Ionicons
               name="logo-google"
               size={20}

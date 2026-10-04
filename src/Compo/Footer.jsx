@@ -34,8 +34,8 @@ const Footer = () => {
 const styles = StyleSheet.create({
 
   container: {
-    marginTop: 20,
-    paddingTop: 25,
+    marginTop: 5,
+    paddingTop: 5,
     paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: '#eeeeee',
