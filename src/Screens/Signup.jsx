@@ -67,7 +67,7 @@ export default function Signup() {
       alert("Account created successfully!");
 
       // Go to Home
-      router.replace("/Home");
+      router.replace("/");
 
     } catch (error) {
       console.error("Signup error:", error);

@@ -2,12 +2,12 @@ import React from "react";
 import {
   View,
   Text,
-  StyleSheet,
   Pressable,
+  StyleSheet,
 } from "react-native";
 import { router } from "expo-router";
 
-const Header = () => {
+export default function Header() {
   return (
     <View style={styles.header}>
 
@@ -18,34 +18,47 @@ const Header = () => {
       >
         <Text style={styles.logoIcon}>🚗</Text>
 
-        <Text style={styles.logoText}>
+        <Text style={styles.logo}>
           RideMate
         </Text>
       </Pressable>
 
-      {/* Right side */}
-      <View style={styles.rightContainer}>
+      {/* Navigation Buttons */}
+      <View style={styles.buttons}>
+
+        {/* Offer Ride */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => router.push("/offer-ride")}
+        >
+          <Text style={styles.buttonText}>
+            Offer Ride
+          </Text>
+        </Pressable>
 
         {/* Login */}
         <Pressable
-          onPress={() => router.push("/login")}
           style={({ pressed }) => [
-            styles.loginButton,
+            styles.button,
             pressed && styles.pressed,
           ]}
+          onPress={() => router.push("/login")}
         >
-          <Text style={styles.loginText}>
+          <Text style={styles.buttonText}>
             Login
           </Text>
         </Pressable>
 
         {/* Sign Up */}
         <Pressable
-          onPress={() => router.push("/signup")}
           style={({ pressed }) => [
             styles.signupButton,
             pressed && styles.pressed,
           ]}
+          onPress={() => router.push("/signup")}
         >
           <Text style={styles.signupText}>
             Sign Up
@@ -53,25 +66,27 @@ const Header = () => {
         </Pressable>
 
       </View>
-
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   header: {
     height: 70,
+    width: "100%",
+
+    backgroundColor: "#FFFFFF",
 
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
 
-    paddingHorizontal: 20,
-
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 18,
 
     borderBottomWidth: 1,
-    borderBottomColor: "#E8EEF5",
+    borderBottomColor: "#E5E7EB",
+
+    elevation: 3,
   },
 
   logoContainer: {
@@ -80,51 +95,49 @@ const styles = StyleSheet.create({
   },
 
   logoIcon: {
-    fontSize: 23,
-    marginRight: 7,
+    fontSize: 22,
+    marginRight: 6,
   },
 
-  logoText: {
-    fontSize: 21,
+  logo: {
+    fontSize: 20,
     fontWeight: "700",
     color: "#1769E0",
   },
 
-  rightContainer: {
+  buttons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 8,
   },
 
-  loginButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+  button: {
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: "#EAF3FF",
   },
 
-  loginText: {
-    fontSize: 15,
+  buttonText: {
+    fontSize: 13,
     fontWeight: "600",
-    color: "#172B4D",
+    color: "#1769E0",
   },
 
   signupButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-
-    backgroundColor: "#1769E0",
-
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     borderRadius: 8,
+    backgroundColor: "#1769E0",
   },
 
   signupText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "600",
     color: "#FFFFFF",
   },
 
   pressed: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
 });
-
-export default Header;

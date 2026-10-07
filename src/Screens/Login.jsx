@@ -27,7 +27,7 @@ export default function Login() {
         {email:email
           ,password:password
         })
-        router.replace("/Home.jsx");
+        router.replace("/");
 
     } catch (error) {
       console.error("Error occurred while logging in:", error);
