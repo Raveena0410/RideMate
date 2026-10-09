@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import axios from "axios";
-
+import React, { useState } from 'react';
+import axios from 'axios';
 import {
   View,
   Text,
@@ -9,295 +8,275 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-} from "react-native";
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function Signup() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // =========================
-  // SIGNUP FUNCTION
-  // =========================
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
-    // Check empty fields
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.trim();
+
     if (
-      !name ||
-      !email ||
-      !phone ||
+      !normalizedName ||
+      !normalizedEmail ||
+      !normalizedPhone ||
       !password ||
       !confirmPassword
     ) {
-      alert("Please fill all fields");
+      Alert.alert('Missing details', 'Please fill in all fields.');
       return;
     }
 
-    // Check password
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      Alert.alert('Invalid email', 'Please enter a valid email address.');
       return;
     }
+
+    if (password.length < 8) {
+      Alert.alert(
+        'Weak password',
+        'Your password must contain at least 8 characters.'
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Password mismatch', 'Your passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      console.log("Creating account...");
-
-      // Send data to backend
-      const response = await axios.post(
-        "http://192.168.100.79:5000/api/register",
+      await axios.post(
+        `${API_URL}/api/register`,
         {
-          name: name,
-          email: email,
-          phone: phone,
-          password: password,
-        }
+          name: normalizedName,
+          email: normalizedEmail,
+          phone: normalizedPhone,
+          password,
+        },
+        { timeout: 15000 }
       );
 
-      console.log("Signup response:", response.data);
-
-      // Account created successfully
-      alert("Account created successfully!");
-
-      // Go to Home
-      router.replace("/");
-
+      Alert.alert(
+        'Account created',
+        'Your RideMate account is ready. Please log in.',
+        [
+          {
+            text: 'Go to Login',
+            onPress: () => router.replace('/login'),
+          },
+        ]
+      );
     } catch (error) {
-      console.error("Signup error:", error);
+      let message = 'Unable to create your account. Please try again.';
 
-      if (error.response) {
-        console.log(
-          "Backend error:",
-          error.response.data
-        );
-
-        alert(
-          error.response.data.message ||
-          "Signup failed"
-        );
-      } else {
-        alert(
-          "Unable to connect to the server. Please check that your backend is running."
-        );
+      if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.code === 'ECONNABORTED') {
+        message = 'The server took too long to respond.';
+      } else if (!error.response) {
+        message =
+          `Cannot connect to ${API_URL}. ` +
+          'Check your backend server and API address.';
       }
+
+      Alert.alert('Signup failed', message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
-
-          {/* Back Button */}
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.replace('/')}
+            accessibilityLabel="Back to home"
           >
-            <Ionicons
-              name="arrow-back"
-              size={25}
-              color="#000"
-            />
+            <Ionicons name="arrow-back" size={24} color="#172B4D" />
           </TouchableOpacity>
 
-          {/* Logo */}
           <View style={styles.logoContainer}>
-            <Ionicons
-              name="car-sport"
-              size={45}
-              color="#000"
-            />
+            <View style={styles.logoCircle}>
+              <Ionicons name="car-sport" size={42} color="#1769E0" />
+            </View>
           </View>
 
-          {/* Title */}
-          <Text style={styles.title}>
-            Create Account
-          </Text>
-
+          <Text style={styles.title}>Create your account</Text>
           <Text style={styles.subtitle}>
-            Join RideShare and start your journey
+            Join RideMate and travel together.
           </Text>
 
-          {/* Name */}
+          <Text style={styles.label}>Full name</Text>
           <View style={styles.inputContainer}>
-            <Ionicons
-              name="person-outline"
-              size={20}
-              color="#777"
-            />
-
+            <Ionicons name="person-outline" size={20} color="#667085" />
             <TextInput
               style={styles.input}
-              placeholder="Full name"
+              placeholder="Enter your full name"
+              placeholderTextColor="#98A2B3"
               value={name}
               onChangeText={setName}
+              autoCapitalize="words"
+              autoComplete="name"
+              editable={!loading}
             />
           </View>
 
-          {/* Email */}
+          <Text style={styles.label}>Email address</Text>
           <View style={styles.inputContainer}>
-            <Ionicons
-              name="mail-outline"
-              size={20}
-              color="#777"
-            />
-
+            <Ionicons name="mail-outline" size={20} color="#667085" />
             <TextInput
               style={styles.input}
-              placeholder="Email address"
+              placeholder="Enter your email"
+              placeholderTextColor="#98A2B3"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              editable={!loading}
             />
           </View>
 
-          {/* Phone */}
+          <Text style={styles.label}>Phone number</Text>
           <View style={styles.inputContainer}>
-            <Ionicons
-              name="call-outline"
-              size={20}
-              color="#777"
-            />
-
+            <Ionicons name="call-outline" size={20} color="#667085" />
             <TextInput
               style={styles.input}
-              placeholder="Phone number"
+              placeholder="Enter your phone number"
+              placeholderTextColor="#98A2B3"
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
+              autoComplete="tel"
+              editable={!loading}
             />
           </View>
 
-          {/* Password */}
+          <Text style={styles.label}>Password</Text>
           <View style={styles.inputContainer}>
             <Ionicons
               name="lock-closed-outline"
               size={20}
-              color="#777"
+              color="#667085"
             />
-
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder="At least 8 characters"
+              placeholderTextColor="#98A2B3"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoComplete="new-password"
+              editable={!loading}
             />
-
             <TouchableOpacity
-              onPress={() =>
-                setShowPassword(!showPassword)
+              onPress={() => setShowPassword((value) => !value)}
+              disabled={loading}
+              accessibilityLabel={
+                showPassword ? 'Hide password' : 'Show password'
               }
             >
               <Ionicons
-                name={
-                  showPassword
-                    ? "eye-outline"
-                    : "eye-off-outline"
-                }
-                size={20}
-                color="#777"
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={21}
+                color="#667085"
               />
             </TouchableOpacity>
           </View>
 
-          {/* Confirm Password */}
+          <Text style={styles.label}>Confirm password</Text>
           <View style={styles.inputContainer}>
             <Ionicons
               name="lock-closed-outline"
               size={20}
-              color="#777"
+              color="#667085"
             />
-
             <TextInput
               style={styles.input}
-              placeholder="Confirm password"
+              placeholder="Enter your password again"
+              placeholderTextColor="#98A2B3"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+              autoComplete="new-password"
+              editable={!loading}
             />
-
             <TouchableOpacity
               onPress={() =>
-                setShowConfirmPassword(
-                  !showConfirmPassword
-                )
+                setShowConfirmPassword((value) => !value)
+              }
+              disabled={loading}
+              accessibilityLabel={
+                showConfirmPassword
+                  ? 'Hide confirm password'
+                  : 'Show confirm password'
               }
             >
               <Ionicons
                 name={
                   showConfirmPassword
-                    ? "eye-outline"
-                    : "eye-off-outline"
+                    ? 'eye-off-outline'
+                    : 'eye-outline'
                 }
-                size={20}
-                color="#777"
+                size={21}
+                color="#667085"
               />
             </TouchableOpacity>
           </View>
 
-          {/* Create Account Button */}
           <TouchableOpacity
-            style={styles.signupButton}
+            style={[styles.signupButton, loading && styles.disabled]}
             onPress={handleSignup}
+            disabled={loading}
+            activeOpacity={0.8}
           >
-            <Text style={styles.signupButtonText}>
-              Create Account
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.signupButtonText}>Create account</Text>
+            )}
           </TouchableOpacity>
 
-          {/* OR */}
-          <View style={styles.orContainer}>
-            <View style={styles.line} />
-
-            <Text style={styles.orText}>
-              OR
-            </Text>
-
-            <View style={styles.line} />
-          </View>
-
-          {/* Google */}
-          <TouchableOpacity
-            style={styles.googleButton}
-          >
-            <Ionicons
-              name="logo-google"
-              size={20}
-              color="#000"
-            />
-
-            <Text style={styles.googleText}>
-              Continue with Google
-            </Text>
-          </TouchableOpacity>
-
-          {/* Login */}
           <View style={styles.loginContainer}>
-            <Text style={styles.accountText}>
-              Already have an account?{" "}
-            </Text>
-
+            <Text style={styles.loginText}>Already have an account?</Text>
             <TouchableOpacity
-              onPress={() => router.push("/login")}
+              onPress={() => router.push('/login')}
+              disabled={loading}
             >
-              <Text style={styles.loginText}>
-                Login
-              </Text>
+              <Text style={styles.loginLink}> Login</Text>
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.footer}>
+            Your journey starts with RideMate.
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -307,120 +286,112 @@ export default function Signup() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#F4F7FB',
   },
-
-  scrollContainer: {
+  scroll: {
     flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 24,
   },
-
   content: {
-    paddingHorizontal: 25,
-    paddingVertical: 25,
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
   },
-
   backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
+    alignSelf: 'flex-start',
+    padding: 8,
+    marginBottom: 12,
   },
-
   logoContainer: {
-    alignItems: "center",
-    marginTop: 5,
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 18,
   },
-
+  logoCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 23,
+    backgroundColor: '#E6F0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
-    fontSize: 30,
-    fontWeight: "700",
-    textAlign: "center",
+    fontSize: 29,
+    fontWeight: '800',
+    color: '#172B4D',
+    textAlign: 'center',
   },
-
   subtitle: {
     fontSize: 15,
-    color: "#777",
-    textAlign: "center",
-    marginTop: 8,
-    marginBottom: 30,
+    lineHeight: 22,
+    color: '#667085',
+    textAlign: 'center',
+    marginTop: 9,
+    marginBottom: 22,
   },
-
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#344054',
+    marginTop: 12,
+    marginBottom: 8,
+  },
   inputContainer: {
-    height: 55,
+    minHeight: 53,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 13,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: '#D8DEE8',
     borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    marginBottom: 15,
+    backgroundColor: '#FFFFFF',
   },
-
   input: {
     flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
+    minWidth: 0,
+    paddingVertical: 13,
+    color: '#172B4D',
+    fontSize: 14,
   },
-
   signupButton: {
-    height: 55,
+    minHeight: 53,
+    backgroundColor: '#1769E0',
     borderRadius: 12,
-    backgroundColor: "#000",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 5,
-  },
-
-  signupButtonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "700",
-  },
-
-  orContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 22,
-  },
-
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#ddd",
-  },
-
-  orText: {
-    marginHorizontal: 10,
-    color: "#777",
-  },
-
-  googleButton: {
-    height: 55,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-  },
-
-  googleText: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 10,
-  },
-
-  loginContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
     marginTop: 25,
   },
-
-  accountText: {
-    color: "#777",
+  signupButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
   },
-
+  disabled: {
+    opacity: 0.65,
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 22,
+  },
   loginText: {
-    fontWeight: "700",
+    fontSize: 14,
+    color: '#667085',
+  },
+  loginLink: {
+    fontSize: 14,
+    color: '#1769E0',
+    fontWeight: '800',
+  },
+  footer: {
+    textAlign: 'center',
+    marginTop: 26,
+    color: '#98A2B3',
+    fontSize: 12,
   },
 });
