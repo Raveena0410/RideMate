@@ -1,180 +1,164 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React from 'react';
+import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
-
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
-  const theme = useTheme();
-
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+export default function ExploreScreen() {
+  const { from, to, date, passengers } = useLocalSearchParams<{
+    from?: string;
+    to?: string;
+    date?: string;
+    passengers?: string;
+  }>();
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+    <ScrollView contentContainerStyle={styles.page}>
+      <View style={styles.card}>
+        <Text style={styles.eyebrow}>RIDE SEARCH</Text>
+        <Text style={styles.title}>Your trip</Text>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+        <View style={styles.routeRow}>
+          <View style={styles.routeMark}>
+            <View style={styles.startDot} />
+            <View style={styles.routeLine} />
+            <View style={styles.endDot} />
+          </View>
+          <View style={styles.routeLabels}>
+            <Text style={styles.location}>{from || 'Starting point'}</Text>
+            <Text style={styles.location}>{to || 'Destination'}</Text>
+          </View>
+        </View>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+        <View style={styles.details}>
+          <Text style={styles.detail}>{date || 'Date not selected'}</Text>
+          <Text style={styles.detail}>{passengers || '1'} {passengers === '1' || !passengers ? 'passenger' : 'passengers'}</Text>
+        </View>
 
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
+        <View style={styles.messageBox}>
+          <Text style={styles.messageTitle}>Ride listings will appear here</Text>
+          <Text style={styles.message}>
+            Search is connected to this screen. Live ride results will show once ride search is connected to the backend.
+          </Text>
+        </View>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
+        <Pressable style={styles.button} onPress={() => router.replace('/')}>
+          <Text style={styles.buttonText}>Back to search</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
+  page: {
     flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
     justifyContent: 'center',
-    gap: Spacing.one,
     alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#F7F9FC',
   },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
+  card: {
     width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
+    maxWidth: 520,
+    padding: 24,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E1E6EF',
   },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
+  eyebrow: {
+    color: '#1769E0',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  title: {
+    color: '#172B4D',
+    fontSize: 27,
+    fontWeight: '700',
+    marginTop: 6,
+    marginBottom: 22,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#E1E6EF',
+    borderRadius: 12,
+  },
+  routeMark: {
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  startDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#1769E0',
+  },
+  routeLine: {
+    height: 24,
+    borderLeftWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#98A2B3',
+  },
+  endDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: '#1769E0',
+  },
+  routeLabels: {
+    flex: 1,
+    gap: 20,
+  },
+  location: {
+    color: '#172B4D',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  details: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  detail: {
+    color: '#475467',
+    fontSize: 13,
+    backgroundColor: '#F2F4F7',
+    paddingVertical: 8,
+    paddingHorizontal: 11,
+    borderRadius: 16,
+  },
+  messageBox: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+  },
+  messageTitle: {
+    color: '#172B4D',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  message: {
+    color: '#667085',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  button: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    marginTop: 18,
+    borderRadius: 10,
+    backgroundColor: '#1769E0',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

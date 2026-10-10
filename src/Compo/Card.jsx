@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { router } from "expo-router";
 import {
   View,
   Text,
@@ -79,10 +80,10 @@ export default function Card() {
       return;
     }
 
-    Alert.alert(
-      "Search Ride",
-      `From: ${from}\nTo: ${to}\nDate: ${date}\nPassengers: ${passengers}`
-    );
+    router.push({
+      pathname: "/explore",
+      params: { from, to, date, passengers: String(passengers) },
+    });
   };
 
   return (
