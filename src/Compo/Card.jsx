@@ -1,5 +1,5 @@
+
 import React, { useState } from "react";
-import { router } from "expo-router";
 import {
   View,
   Text,
@@ -7,27 +7,27 @@ import {
   TextInput,
   Alert,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
+import axios from "axios";
+
+const API_URL = "http://YOUR_COMPUTER_IP:5000/api/rides";
 
 export default function Card() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [date, setDate] = useState("");
   const [passengers, setPassengers] = useState(1);
-
   const [inputType, setInputType] = useState(null);
   const [inputValue, setInputValue] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const openInput = (type) => {
     setInputType(type);
 
-    if (type === "from") {
-      setInputValue(from);
-    } else if (type === "to") {
-      setInputValue(to);
-    } else if (type === "date") {
-      setInputValue(date);
-    }
+    if (type === "from") setInputValue(from);
+    else if (type === "to") setInputValue(to);
+    else if (type === "date") setInputValue(date);
   };
 
   const saveInput = () => {
@@ -36,59 +36,100 @@ export default function Card() {
       return;
     }
 
-    if (inputType === "from") {
-      setFrom(inputValue);
-    }
-
-    if (inputType === "to") {
-      setTo(inputValue);
-    }
-
-    if (inputType === "date") {
-      setDate(inputValue);
-    }
+    if (inputType === "from") setFrom(inputValue.trim());
+    if (inputType === "to") setTo(inputValue.trim());
+    if (inputType === "date") setDate(inputValue.trim());
 
     setInputType(null);
     setInputValue("");
   };
 
-  const increasePassengers = () => {
-    if (passengers < 6) {
-      setPassengers(passengers + 1);
-    }
-  };
-
-  const decreasePassengers = () => {
-    if (passengers > 1) {
-      setPassengers(passengers - 1);
-    }
-  };
-
-  const handleSearch = () => {
-    if (!from) {
-      Alert.alert("Missing", "Please select your starting point.");
+  const handleSearch = async () => {
+    if (!from.trim() || !to.trim() || !date.trim()) {
+      Alert.alert(
+        "Missing details",
+        "Please select your starting point, destination and date."
+      );
       return;
     }
 
-    if (!to) {
-      Alert.alert("Missing", "Please select your destination.");
+    if (from.trim().toLowerCase() === to.trim().toLowerCase()) {
+      Alert.alert(
+        "Invalid route",
+        "Starting point and destination must differ."
+      );
       return;
     }
 
-    if (!date) {
-      Alert.alert("Missing", "Please select your travel date.");
-      return;
-    }
+    setLoading(true);
 
-    router.push({
-      pathname: "/explore",
-      params: { from, to, date, passengers: String(passengers) },
-    });
+    try {
+      const response = await axios.get(API_URL);
+      const rides = response.data.rides || [];
+
+      const matchingRides = rides.filter((ride) => {
+        const sameFrom =
+          ride.from.trim().toLowerCase() ===
+          from.trim().toLowerCase();
+
+        const sameTo =
+          ride.to.trim().toLowerCase() ===
+          to.trim().toLowerCase();
+
+        const sameDate = ride.date.trim() === date.trim();
+
+        return (
+          sameFrom &&
+          sameTo &&
+          sameDate &&
+          ride.availableSeats >= passengers
+        );
+      });
+
+      if (matchingRides.length === 0) {
+        Alert.alert(
+          "No rides found",
+          "No rides match your route, date and passenger count."
+        );
+        return;
+      }
+
+      const rideMessages = matchingRides
+        .slice(0, 5)
+        .map(
+          (ride, index) =>
+            `${index + 1}. ${ride.from} → ${ride.to}\n` +
+            `Time: ${ride.time}\n` +
+            `Price: ₹${ride.pricePerSeat} per passenger\n` +
+            `Available seats: ${ride.availableSeats}`
+        );
+
+      const moreRides =
+        matchingRides.length > 5
+          ? `\n\nAnd ${matchingRides.length - 5} more rides.`
+          : "";
+
+      Alert.alert(
+        `${matchingRides.length} ride(s) found`,
+        rideMessages.join("\n\n") + moreRides
+      );
+    } catch (error) {
+      console.log(
+        "Search error:",
+        error.response?.data || error.message
+      );
+
+      Alert.alert(
+        "Search failed",
+        "Unable to fetch rides. Check your backend and network connection."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={styles.card}>
-
       <Text style={styles.title}>Find your ride</Text>
 
       <Text style={styles.subtitle}>
@@ -107,7 +148,6 @@ export default function Card() {
 
         <View style={styles.textContainer}>
           <Text style={styles.label}>From</Text>
-
           <Text
             style={[
               styles.location,
@@ -133,7 +173,6 @@ export default function Card() {
 
         <View style={styles.textContainer}>
           <Text style={styles.label}>To</Text>
-
           <Text
             style={[
               styles.location,
@@ -147,10 +186,8 @@ export default function Card() {
         <Text style={styles.arrow}>›</Text>
       </TouchableOpacity>
 
-      {/* DATE + PASSENGERS */}
+      {/* DATE AND PASSENGERS */}
       <View style={styles.detailsRow}>
-
-        {/* DATE */}
         <TouchableOpacity
           style={styles.detailBox}
           activeOpacity={0.7}
@@ -160,7 +197,6 @@ export default function Card() {
 
           <View style={styles.detailContent}>
             <Text style={styles.label}>Date</Text>
-
             <Text
               style={[
                 styles.detailText,
@@ -174,19 +210,18 @@ export default function Card() {
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
-        {/* PASSENGERS */}
         <View style={styles.detailBox}>
-
           <Text style={styles.smallIcon}>👤</Text>
 
           <View style={styles.detailContent}>
             <Text style={styles.label}>Passengers</Text>
 
             <View style={styles.passengerRow}>
-
               <TouchableOpacity
                 style={styles.counterButton}
-                onPress={decreasePassengers}
+                onPress={() =>
+                  setPassengers((p) => Math.max(1, p - 1))
+                }
               >
                 <Text style={styles.counterText}>−</Text>
               </TouchableOpacity>
@@ -197,37 +232,46 @@ export default function Card() {
 
               <TouchableOpacity
                 style={styles.counterButton}
-                onPress={increasePassengers}
+                onPress={() =>
+                  setPassengers((p) => Math.min(6, p + 1))
+                }
               >
                 <Text style={styles.counterText}>+</Text>
               </TouchableOpacity>
-
             </View>
           </View>
-
         </View>
-
       </View>
 
       {/* SEARCH */}
       <TouchableOpacity
-        style={styles.searchButton}
+        style={[
+          styles.searchButton,
+          loading && styles.disabledButton,
+        ]}
         activeOpacity={0.8}
         onPress={handleSearch}
+        disabled={loading}
       >
-        <Text style={styles.searchText}>
-          🔍 Search rides
-        </Text>
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.searchText}>
+            🔍 Search rides
+          </Text>
+        )}
       </TouchableOpacity>
 
       {/* INPUT POPUP */}
       {inputType && (
         <View style={styles.inputPopup}>
-
           <Text style={styles.popupTitle}>
-            {inputType === "from" && "Where are you starting from?"}
-            {inputType === "to" && "Where are you going?"}
-            {inputType === "date" && "When are you travelling?"}
+            {inputType === "from" &&
+              "Where are you starting from?"}
+            {inputType === "to" &&
+              "Where are you going?"}
+            {inputType === "date" &&
+              "When are you travelling?"}
           </Text>
 
           <TextInput
@@ -244,7 +288,6 @@ export default function Card() {
           />
 
           <View style={styles.popupButtons}>
-
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => {
@@ -252,25 +295,18 @@ export default function Card() {
                 setInputValue("");
               }}
             >
-              <Text style={styles.cancelText}>
-                Cancel
-              </Text>
+              <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.saveButton}
               onPress={saveInput}
             >
-              <Text style={styles.saveText}>
-                Done
-              </Text>
+              <Text style={styles.saveText}>Done</Text>
             </TouchableOpacity>
-
           </View>
-
         </View>
       )}
-
     </View>
   );
 }
@@ -282,244 +318,177 @@ const styles = StyleSheet.create({
     padding: 20,
     marginHorizontal: 16,
     marginTop: 20,
-
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
-
     elevation: 4,
   },
-
   title: {
     fontSize: 24,
     fontWeight: "700",
     color: "#172B4D",
   },
-
   subtitle: {
     fontSize: 14,
     color: "#6B7280",
     marginTop: 5,
     marginBottom: 20,
   },
-
   locationBox: {
     flexDirection: "row",
     alignItems: "center",
-
     borderWidth: 1,
     borderColor: "#E1E7EF",
-
     borderRadius: 12,
-
     padding: 13,
-
     marginBottom: 12,
   },
-
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-
     backgroundColor: "#EAF3FF",
-
     alignItems: "center",
     justifyContent: "center",
-
     marginRight: 12,
   },
-
   icon: {
     fontSize: 17,
   },
-
   textContainer: {
     flex: 1,
   },
-
   label: {
     fontSize: 12,
     color: "#7A869A",
     marginBottom: 3,
   },
-
   location: {
     fontSize: 14,
     color: "#172B4D",
     fontWeight: "500",
   },
-
   placeholder: {
     color: "#9CA3AF",
     fontWeight: "400",
   },
-
   arrow: {
     fontSize: 24,
     color: "#9CA3AF",
   },
-
   detailsRow: {
     flexDirection: "row",
     gap: 10,
     marginBottom: 16,
   },
-
   detailBox: {
     flex: 1,
-
     flexDirection: "row",
     alignItems: "center",
-
     borderWidth: 1,
     borderColor: "#E1E7EF",
-
     borderRadius: 12,
-
     padding: 12,
   },
-
   smallIcon: {
     fontSize: 18,
     marginRight: 8,
   },
-
   detailContent: {
     flex: 1,
   },
-
   detailText: {
     fontSize: 14,
     color: "#172B4D",
     fontWeight: "500",
   },
-
   passengerRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-
   counterButton: {
     width: 26,
     height: 26,
     borderRadius: 13,
-
     backgroundColor: "#EAF3FF",
-
     alignItems: "center",
     justifyContent: "center",
   },
-
   counterText: {
     fontSize: 18,
     fontWeight: "600",
     color: "#1769E0",
   },
-
   passengerNumber: {
     fontSize: 14,
     fontWeight: "600",
     color: "#172B4D",
-
     marginHorizontal: 10,
   },
-
   searchButton: {
     backgroundColor: "#1769E0",
-
     paddingVertical: 15,
-
     borderRadius: 12,
-
     alignItems: "center",
     justifyContent: "center",
-
     marginTop: 2,
   },
-
+  disabledButton: {
+    opacity: 0.7,
+  },
   searchText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
-
   inputPopup: {
     marginTop: 16,
-
     backgroundColor: "#F8FAFC",
-
     borderRadius: 14,
-
     padding: 16,
-
     borderWidth: 1,
     borderColor: "#E1E7EF",
   },
-
   popupTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#172B4D",
-
     marginBottom: 12,
   },
-
   popupInput: {
     backgroundColor: "#FFFFFF",
-
     borderWidth: 1,
     borderColor: "#D9E0EA",
-
     borderRadius: 10,
-
     paddingHorizontal: 12,
     paddingVertical: 12,
-
     fontSize: 15,
     color: "#172B4D",
   },
-
   popupButtons: {
     flexDirection: "row",
     gap: 10,
-
     marginTop: 12,
   },
-
   cancelButton: {
     flex: 1,
-
     paddingVertical: 12,
-
     borderRadius: 10,
-
     alignItems: "center",
-
     backgroundColor: "#E5E7EB",
   },
-
   cancelText: {
     color: "#374151",
     fontWeight: "600",
   },
-
   saveButton: {
     flex: 1,
-
     paddingVertical: 12,
-
     borderRadius: 10,
-
     alignItems: "center",
-
     backgroundColor: "#1769E0",
   },
-
   saveText: {
     color: "#FFFFFF",
     fontWeight: "600",

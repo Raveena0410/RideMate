@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 15,
   },
-marginBottom
+
 });
 
 export default Footer;

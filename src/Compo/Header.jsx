@@ -16,7 +16,7 @@ export default function Header() {
         onPress={() => router.push("/")}
         style={styles.logoContainer}
       >
-        <Text style={styles.logoIcon}>🚗</Text>
+        
 
         <Text style={styles.logo}>
           RideMate

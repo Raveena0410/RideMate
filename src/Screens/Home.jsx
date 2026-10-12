@@ -6,7 +6,7 @@ import Card from '../Compo/Card';
 import Pop from '../Compo/Popularroute';
 import How from '../Compo/HowItWorks';
 import Footer from '../Compo/Footer';
-import Offer from '../Compo/offer-ride';
+
 
 
 const Home = () => {
@@ -26,7 +26,7 @@ const Home = () => {
 
         <How />
 
-        <Offer />
+        
 
         <Footer/>
       </ScrollView>
