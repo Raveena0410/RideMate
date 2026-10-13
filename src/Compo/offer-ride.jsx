@@ -11,8 +11,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 
-const API_URL = "http://YOUR_COMPUTER_IP:5000/api/rides";
+const API_URL = "http://10.67.7.103:5000";
 
 export default function OfferRide() {
   const [from, setFrom] = useState("");
@@ -24,6 +26,32 @@ export default function OfferRide() {
   const [loading, setLoading] = useState(false);
 
   const handlePublish = async () => {
+    // Check whether the user has logged in
+    let token;
+
+    try {
+      token = await AsyncStorage.getItem("token");
+    } catch (error) {
+      Alert.alert("Error", "Unable to check your login session.");
+      return;
+    }
+
+    if (!token) {
+      Alert.alert(
+        "Login required",
+        "Please log in before offering a ride.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Login",
+            onPress: () => router.push("/login"),
+          },
+        ]
+      );
+      return;
+    }
+
+    // Validate form fields
     if (
       !from.trim() ||
       !to.trim() ||
@@ -36,7 +64,10 @@ export default function OfferRide() {
     }
 
     if (from.trim().toLowerCase() === to.trim().toLowerCase()) {
-      Alert.alert("Invalid route", "Departure and destination must differ.");
+      Alert.alert(
+        "Invalid route",
+        "Departure and destination must differ."
+      );
       return;
     }
 
@@ -57,7 +88,16 @@ export default function OfferRide() {
     setLoading(true);
 
     try {
-      const response = await axios.post(API_URL, rideData);
+      const response = await axios.post(
+        `${API_URL}/api/rides`,
+        rideData,
+        {
+          timeout: 15000,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       Alert.alert(
         "Success",
@@ -76,11 +116,26 @@ export default function OfferRide() {
         error.response?.data || error.message
       );
 
-      Alert.alert(
-        "Unable to publish",
-        error.response?.data?.message ||
-          "Check your backend server and network connection."
-      );
+      if (error.response?.status === 401) {
+        await AsyncStorage.removeItem("token");
+
+        Alert.alert(
+          "Session expired",
+          "Please log in again.",
+          [
+            {
+              text: "Login",
+              onPress: () => router.replace("/login"),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Unable to publish",
+          error.response?.data?.message ||
+            "Check your backend server and network connection."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -181,7 +236,10 @@ export default function OfferRide() {
         </View>
 
         <TouchableOpacity
-          style={[styles.publishButton, loading && styles.disabledButton]}
+          style={[
+            styles.publishButton,
+            loading && styles.disabledButton,
+          ]}
           onPress={handlePublish}
           activeOpacity={0.8}
           disabled={loading}
@@ -349,3 +407,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
+

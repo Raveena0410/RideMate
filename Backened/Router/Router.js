@@ -1,23 +1,29 @@
-const express = require('express');
+
+const express = require("express");
 const router = express.Router();
 
-const { register, login } = require('../Controller/Register');
+const { register, login } = require("../Controller/Register");
 
-router.post('/register', register);
-router.post('/login', login);
 const {
   publishRide,
   getRides,
 } = require("../Controller/RideController");
 
-// Existing authentication routes
+const {
+  createBooking,
+  getBookings,
+} = require("../Controller/Booking");
+
+// Authentication routes
 router.post("/register", register);
 router.post("/login", login);
 
-// New ride routes
+// Ride routes
 router.post("/rides", publishRide);
 router.get("/rides", getRides);
 
-module.exports = router;
+// Booking routes
+router.post("/bookings", createBooking);
+router.get("/bookings", getBookings);
 
 module.exports = router;

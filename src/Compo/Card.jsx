@@ -3,494 +3,462 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   TextInput,
-  Alert,
+  TouchableOpacity,
+  ScrollView,
   StyleSheet,
-  ActivityIndicator,
+  Alert,
 } from "react-native";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 
-const API_URL = "http://YOUR_COMPUTER_IP:5000/api/rides";
+const API_URL = "http://10.67.7.103:5000";
 
 export default function Card() {
+  const router = useRouter();
+
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [date, setDate] = useState("");
   const [passengers, setPassengers] = useState(1);
-  const [inputType, setInputType] = useState(null);
-  const [inputValue, setInputValue] = useState("");
+  const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const openInput = (type) => {
-    setInputType(type);
+  const [passengerName, setPassengerName] = useState("");
+  const [passengerPhone, setPassengerPhone] = useState("");
+  const [bookingRideId, setBookingRideId] = useState(null);
 
-    if (type === "from") setInputValue(from);
-    else if (type === "to") setInputValue(to);
-    else if (type === "date") setInputValue(date);
-  };
+  // Check login before allowing an action.
+  const requireLogin = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
 
-  const saveInput = () => {
-    if (!inputValue.trim()) {
-      Alert.alert("Required", "Please enter a value.");
-      return;
+      if (token) {
+        return token;
+      }
+
+      Alert.alert(
+        "Login Required",
+        "Please log in to continue.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Login",
+            onPress: () => router.push("/login"),
+          },
+        ]
+      );
+
+      return null;
+    } catch (error) {
+      console.log("Login check error:", error.message);
+      Alert.alert("Error", "Unable to check your login. Please try again.");
+      return null;
     }
-
-    if (inputType === "from") setFrom(inputValue.trim());
-    if (inputType === "to") setTo(inputValue.trim());
-    if (inputType === "date") setDate(inputValue.trim());
-
-    setInputType(null);
-    setInputValue("");
   };
 
-  const handleSearch = async () => {
+  // Search rides.
+  const searchRides = async () => {
+    const token = await requireLogin();
+
+    if (!token) return;
+
     if (!from.trim() || !to.trim() || !date.trim()) {
-      Alert.alert(
-        "Missing details",
-        "Please select your starting point, destination and date."
-      );
+      Alert.alert("Missing details", "Enter From, To and Date.");
       return;
     }
-
-    if (from.trim().toLowerCase() === to.trim().toLowerCase()) {
-      Alert.alert(
-        "Invalid route",
-        "Starting point and destination must differ."
-      );
-      return;
-    }
-
-    setLoading(true);
 
     try {
-      const response = await axios.get(API_URL);
-      const rides = response.data.rides || [];
+      setLoading(true);
+      setRides([]);
 
-      const matchingRides = rides.filter((ride) => {
+      const response = await axios.get(`${API_URL}/api/rides`, {
+        timeout: 15000,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const allRides = response.data.rides || [];
+
+      const matchedRides = allRides.filter((ride) => {
         const sameFrom =
-          ride.from.trim().toLowerCase() ===
+          ride.from?.trim().toLowerCase() ===
           from.trim().toLowerCase();
 
         const sameTo =
-          ride.to.trim().toLowerCase() ===
+          ride.to?.trim().toLowerCase() ===
           to.trim().toLowerCase();
 
-        const sameDate = ride.date.trim() === date.trim();
+        const sameDate = ride.date === date.trim();
 
         return (
           sameFrom &&
           sameTo &&
           sameDate &&
-          ride.availableSeats >= passengers
+          Number(ride.availableSeats) >= passengers
         );
       });
 
-      if (matchingRides.length === 0) {
-        Alert.alert(
-          "No rides found",
-          "No rides match your route, date and passenger count."
-        );
-        return;
+      setRides(matchedRides);
+
+      if (matchedRides.length === 0) {
+        Alert.alert("No rides found", "Try different search details.");
       }
-
-      const rideMessages = matchingRides
-        .slice(0, 5)
-        .map(
-          (ride, index) =>
-            `${index + 1}. ${ride.from} → ${ride.to}\n` +
-            `Time: ${ride.time}\n` +
-            `Price: ₹${ride.pricePerSeat} per passenger\n` +
-            `Available seats: ${ride.availableSeats}`
-        );
-
-      const moreRides =
-        matchingRides.length > 5
-          ? `\n\nAnd ${matchingRides.length - 5} more rides.`
-          : "";
-
-      Alert.alert(
-        `${matchingRides.length} ride(s) found`,
-        rideMessages.join("\n\n") + moreRides
-      );
     } catch (error) {
       console.log(
-        "Search error:",
+        "Search rides error:",
         error.response?.data || error.message
       );
 
-      Alert.alert(
-        "Search failed",
-        "Unable to fetch rides. Check your backend and network connection."
-      );
+      if (error.response?.status === 401) {
+        await AsyncStorage.removeItem("token");
+
+        Alert.alert(
+          "Session expired",
+          "Please log in again.",
+          [
+            { text: "OK", onPress: () => router.replace("/login") },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Error",
+          error.response?.data?.message ||
+            "Unable to fetch rides. Check that your backend is running."
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Book a ride.
+  const bookRide = async (ride) => {
+    const token = await requireLogin();
+
+    if (!token) return;
+
+    if (!passengerName.trim() || !passengerPhone.trim()) {
+      Alert.alert(
+        "Passenger details",
+        "Enter your name and phone number before booking."
+      );
+      return;
+    }
+
+    if (!/^[0-9+\-\s()]{7,20}$/.test(passengerPhone.trim())) {
+      Alert.alert(
+        "Invalid phone number",
+        "Please enter a valid phone number."
+      );
+      return;
+    }
+
+    try {
+      setBookingRideId(ride._id);
+
+      const response = await axios.post(
+        `${API_URL}/api/bookings`,
+        {
+          rideId: ride._id,
+          passengerName: passengerName.trim(),
+          passengerPhone: passengerPhone.trim(),
+          seatsBooked: passengers,
+        },
+        {
+          timeout: 15000,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      Alert.alert(
+        "Booking Successful!",
+        response.data.message || "Your ride has been booked."
+      );
+
+      // Refresh results to get the actual remaining seats.
+      await searchRides();
+    } catch (error) {
+      console.log(
+        "Booking error:",
+        error.response?.data || error.message
+      );
+
+      if (error.response?.status === 401) {
+        await AsyncStorage.removeItem("token");
+
+        Alert.alert(
+          "Session expired",
+          "Please log in again.",
+          [
+            { text: "OK", onPress: () => router.replace("/login") },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Booking Failed",
+          error.response?.data?.message ||
+            "Could not book this ride. Please try again."
+        );
+      }
+    } finally {
+      setBookingRideId(null);
+    }
+  };
+
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Find your ride</Text>
+    <ScrollView
+      style={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={styles.heading}>Find a Ride</Text>
 
       <Text style={styles.subtitle}>
-        Travel together. Save more.
+        Choose the ride that works best for you.
       </Text>
 
-      {/* FROM */}
-      <TouchableOpacity
-        style={styles.locationBox}
-        activeOpacity={0.7}
-        onPress={() => openInput("from")}
-      >
-        <View style={styles.iconCircle}>
-          <Text style={styles.icon}>📍</Text>
-        </View>
+      <Text style={styles.label}>From</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter starting city"
+        value={from}
+        onChangeText={setFrom}
+        autoCapitalize="words"
+      />
 
-        <View style={styles.textContainer}>
-          <Text style={styles.label}>From</Text>
-          <Text
-            style={[
-              styles.location,
-              !from && styles.placeholder,
-            ]}
-          >
-            {from || "Choose your starting point"}
-          </Text>
-        </View>
+      <Text style={styles.label}>To</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter destination city"
+        value={to}
+        onChangeText={setTo}
+        autoCapitalize="words"
+      />
 
-        <Text style={styles.arrow}>›</Text>
-      </TouchableOpacity>
+      <Text style={styles.label}>Date</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="YYYY-MM-DD"
+        value={date}
+        onChangeText={setDate}
+        autoCapitalize="none"
+      />
 
-      {/* TO */}
-      <TouchableOpacity
-        style={styles.locationBox}
-        activeOpacity={0.7}
-        onPress={() => openInput("to")}
-      >
-        <View style={styles.iconCircle}>
-          <Text style={styles.icon}>📍</Text>
-        </View>
+      <Text style={styles.label}>Number of passengers</Text>
 
-        <View style={styles.textContainer}>
-          <Text style={styles.label}>To</Text>
-          <Text
-            style={[
-              styles.location,
-              !to && styles.placeholder,
-            ]}
-          >
-            {to || "Where are you going?"}
-          </Text>
-        </View>
-
-        <Text style={styles.arrow}>›</Text>
-      </TouchableOpacity>
-
-      {/* DATE AND PASSENGERS */}
-      <View style={styles.detailsRow}>
+      <View style={styles.passengerRow}>
         <TouchableOpacity
-          style={styles.detailBox}
-          activeOpacity={0.7}
-          onPress={() => openInput("date")}
+          style={styles.counterButton}
+          onPress={() => setPassengers((p) => Math.max(1, p - 1))}
+          disabled={loading || bookingRideId !== null}
         >
-          <Text style={styles.smallIcon}>📅</Text>
-
-          <View style={styles.detailContent}>
-            <Text style={styles.label}>Date</Text>
-            <Text
-              style={[
-                styles.detailText,
-                !date && styles.placeholder,
-              ]}
-            >
-              {date || "Select date"}
-            </Text>
-          </View>
-
-          <Text style={styles.arrow}>›</Text>
+          <Text style={styles.counterText}>−</Text>
         </TouchableOpacity>
 
-        <View style={styles.detailBox}>
-          <Text style={styles.smallIcon}>👤</Text>
+        <Text style={styles.passengerCount}>{passengers}</Text>
 
-          <View style={styles.detailContent}>
-            <Text style={styles.label}>Passengers</Text>
-
-            <View style={styles.passengerRow}>
-              <TouchableOpacity
-                style={styles.counterButton}
-                onPress={() =>
-                  setPassengers((p) => Math.max(1, p - 1))
-                }
-              >
-                <Text style={styles.counterText}>−</Text>
-              </TouchableOpacity>
-
-              <Text style={styles.passengerNumber}>
-                {passengers}
-              </Text>
-
-              <TouchableOpacity
-                style={styles.counterButton}
-                onPress={() =>
-                  setPassengers((p) => Math.min(6, p + 1))
-                }
-              >
-                <Text style={styles.counterText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        <TouchableOpacity
+          style={styles.counterButton}
+          onPress={() => setPassengers((p) => Math.min(6, p + 1))}
+          disabled={loading || bookingRideId !== null}
+        >
+          <Text style={styles.counterText}>+</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* SEARCH */}
+      <Text style={styles.label}>Your name</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter your full name"
+        value={passengerName}
+        onChangeText={setPassengerName}
+        autoCapitalize="words"
+      />
+
+      <Text style={styles.label}>Your phone number</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter your phone number"
+        value={passengerPhone}
+        onChangeText={setPassengerPhone}
+        keyboardType="phone-pad"
+      />
+
       <TouchableOpacity
         style={[
           styles.searchButton,
           loading && styles.disabledButton,
         ]}
-        activeOpacity={0.8}
-        onPress={handleSearch}
-        disabled={loading}
+        onPress={searchRides}
+        disabled={loading || bookingRideId !== null}
       >
-        {loading ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.searchText}>
-            🔍 Search rides
-          </Text>
-        )}
+        <Text style={styles.buttonText}>
+          {loading ? "Searching..." : "Search Rides"}
+        </Text>
       </TouchableOpacity>
 
-      {/* INPUT POPUP */}
-      {inputType && (
-        <View style={styles.inputPopup}>
-          <Text style={styles.popupTitle}>
-            {inputType === "from" &&
-              "Where are you starting from?"}
-            {inputType === "to" &&
-              "Where are you going?"}
-            {inputType === "date" &&
-              "When are you travelling?"}
+      <Text style={styles.resultsHeading}>
+        Available Rides ({rides.length})
+      </Text>
+
+      {rides.map((ride) => (
+        <View key={ride._id} style={styles.rideCard}>
+          <Text style={styles.route}>
+            {ride.from} → {ride.to}
           </Text>
 
-          <TextInput
-            style={styles.popupInput}
-            placeholder={
-              inputType === "date"
-                ? "DD/MM/YYYY"
-                : "Enter location"
-            }
-            placeholderTextColor="#9CA3AF"
-            value={inputValue}
-            onChangeText={setInputValue}
-            autoFocus
-          />
+          <Text style={styles.details}>Date: {ride.date}</Text>
+          <Text style={styles.details}>Time: {ride.time}</Text>
 
-          <View style={styles.popupButtons}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => {
-                setInputType(null);
-                setInputValue("");
-              }}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
+          <Text style={styles.details}>
+            Seats available: {ride.availableSeats}
+          </Text>
 
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={saveInput}
-            >
-              <Text style={styles.saveText}>Done</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.price}>
+            ₹{ride.pricePerSeat} per seat
+          </Text>
+
+          <Text style={styles.total}>
+            Total for {passengers} passenger(s): ₹
+            {Number(ride.pricePerSeat) * passengers}
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.bookButton,
+              bookingRideId !== null && styles.disabledButton,
+            ]}
+            disabled={bookingRideId !== null || loading}
+            onPress={() => bookRide(ride)}
+          >
+            <Text style={styles.buttonText}>
+              {bookingRideId === ride._id
+                ? "Booking..."
+                : "Book This Ride"}
+            </Text>
+          </TouchableOpacity>
         </View>
-      )}
-    </View>
+      ))}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 16,
-    marginTop: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+  container: {
+    flex: 1,
+    backgroundColor: "#F7F8FA",
+    padding: 18,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#172B4D",
+  heading: {
+    fontSize: 27,
+    fontWeight: "bold",
+    color: "#173B57",
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 5,
+    color: "#64748B",
     marginBottom: 20,
   },
-  locationBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E1E7EF",
-    borderRadius: 12,
-    padding: 13,
-    marginBottom: 12,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#EAF3FF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  icon: {
-    fontSize: 17,
-  },
-  textContainer: {
-    flex: 1,
-  },
   label: {
-    fontSize: 12,
-    color: "#7A869A",
-    marginBottom: 3,
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 7,
+    marginTop: 10,
+    color: "#243447",
   },
-  location: {
-    fontSize: 14,
-    color: "#172B4D",
-    fontWeight: "500",
-  },
-  placeholder: {
-    color: "#9CA3AF",
-    fontWeight: "400",
-  },
-  arrow: {
-    fontSize: 24,
-    color: "#9CA3AF",
-  },
-  detailsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 16,
-  },
-  detailBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+  input: {
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E1E7EF",
-    borderRadius: 12,
-    padding: 12,
-  },
-  smallIcon: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  detailContent: {
-    flex: 1,
-  },
-  detailText: {
-    fontSize: 14,
-    color: "#172B4D",
-    fontWeight: "500",
+    borderColor: "#D8DEE6",
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    fontSize: 15,
   },
   passengerRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 22,
+    marginBottom: 5,
   },
   counterButton: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#EAF3FF",
+    backgroundColor: "#E2EAF2",
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   counterText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1769E0",
+    fontSize: 24,
+    color: "#173B57",
   },
-  passengerNumber: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#172B4D",
-    marginHorizontal: 10,
+  passengerCount: {
+    fontSize: 18,
+    fontWeight: "bold",
   },
   searchButton: {
-    backgroundColor: "#1769E0",
-    paddingVertical: 15,
-    borderRadius: 12,
+    backgroundColor: "#176B55",
+    padding: 15,
+    borderRadius: 10,
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
+    marginTop: 22,
+  },
+  buttonText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontSize: 15,
   },
   disabledButton: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
-  searchText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  inputPopup: {
-    marginTop: 16,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E1E7EF",
-  },
-  popupTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#172B4D",
+  resultsHeading: {
+    fontSize: 21,
+    fontWeight: "bold",
+    color: "#173B57",
+    marginTop: 25,
     marginBottom: 12,
   },
-  popupInput: {
+  rideCard: {
     backgroundColor: "#FFFFFF",
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#D9E0EA",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: "#172B4D",
+    borderColor: "#E1E7ED",
+    padding: 16,
+    marginBottom: 15,
   },
-  popupButtons: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 12,
+  route: {
+    fontSize: 19,
+    fontWeight: "bold",
+    color: "#173B57",
+    marginBottom: 10,
   },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+  details: {
+    fontSize: 14,
+    color: "#475569",
+    marginBottom: 5,
+  },
+  price: {
+    fontSize: 19,
+    fontWeight: "bold",
+    color: "#176B55",
+    marginTop: 10,
+  },
+  total: {
+    fontSize: 14,
+    color: "#475569",
+    marginTop: 5,
+  },
+  bookButton: {
+    backgroundColor: "#176B55",
+    padding: 13,
+    borderRadius: 9,
     alignItems: "center",
-    backgroundColor: "#E5E7EB",
-  },
-  cancelText: {
-    color: "#374151",
-    fontWeight: "600",
-  },
-  saveButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    backgroundColor: "#1769E0",
-  },
-  saveText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
+    marginTop: 15,
   },
 });
+

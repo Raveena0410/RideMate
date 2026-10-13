@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import axios from 'axios';
 import {
@@ -14,8 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+// Your computer's IPv4 address
+const API_URL = 'http://10.67.7.103:5000';
 
 export default function Signup() {
   const [name, setName] = useState('');
@@ -24,7 +25,8 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
@@ -64,7 +66,7 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      await axios.post(
+      const response = await axios.post(
         `${API_URL}/api/register`,
         {
           name: normalizedName,
@@ -77,7 +79,8 @@ export default function Signup() {
 
       Alert.alert(
         'Account created',
-        'Your RideMate account is ready. Please log in.',
+        response.data?.message ||
+          'Your RideMate account is ready. Please log in.',
         [
           {
             text: 'Go to Login',
@@ -86,6 +89,11 @@ export default function Signup() {
         ]
       );
     } catch (error) {
+      console.error(
+        'Signup error:',
+        error.response?.data || error.message
+      );
+
       let message = 'Unable to create your account. Please try again.';
 
       if (error.response?.data?.message) {
@@ -95,7 +103,8 @@ export default function Signup() {
       } else if (!error.response) {
         message =
           `Cannot connect to ${API_URL}. ` +
-          'Check your backend server and API address.';
+          'Check that your backend is running and your phone ' +
+          'and computer can communicate over the network.';
       }
 
       Alert.alert('Signup failed', message);
@@ -116,12 +125,20 @@ export default function Signup() {
             onPress={() => router.replace('/')}
             accessibilityLabel="Back to home"
           >
-            <Ionicons name="arrow-back" size={24} color="#172B4D" />
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color="#172B4D"
+            />
           </TouchableOpacity>
 
           <View style={styles.logoContainer}>
             <View style={styles.logoCircle}>
-              <Ionicons name="car-sport" size={42} color="#1769E0" />
+              <Ionicons
+                name="car-sport"
+                size={42}
+                color="#1769E0"
+              />
             </View>
           </View>
 
@@ -132,7 +149,11 @@ export default function Signup() {
 
           <Text style={styles.label}>Full name</Text>
           <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#667085" />
+            <Ionicons
+              name="person-outline"
+              size={20}
+              color="#667085"
+            />
             <TextInput
               style={styles.input}
               placeholder="Enter your full name"
@@ -147,7 +168,11 @@ export default function Signup() {
 
           <Text style={styles.label}>Email address</Text>
           <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#667085" />
+            <Ionicons
+              name="mail-outline"
+              size={20}
+              color="#667085"
+            />
             <TextInput
               style={styles.input}
               placeholder="Enter your email"
@@ -164,7 +189,11 @@ export default function Signup() {
 
           <Text style={styles.label}>Phone number</Text>
           <View style={styles.inputContainer}>
-            <Ionicons name="call-outline" size={20} color="#667085" />
+            <Ionicons
+              name="call-outline"
+              size={20}
+              color="#667085"
+            />
             <TextInput
               style={styles.input}
               placeholder="Enter your phone number"
@@ -196,7 +225,7 @@ export default function Signup() {
               editable={!loading}
             />
             <TouchableOpacity
-              onPress={() => setShowPassword((value) => !value)}
+              onPress={() => setShowPassword(value => !value)}
               disabled={loading}
               accessibilityLabel={
                 showPassword ? 'Hide password' : 'Show password'
@@ -230,7 +259,7 @@ export default function Signup() {
             />
             <TouchableOpacity
               onPress={() =>
-                setShowConfirmPassword((value) => !value)
+                setShowConfirmPassword(value => !value)
               }
               disabled={loading}
               accessibilityLabel={
@@ -252,7 +281,10 @@ export default function Signup() {
           </View>
 
           <TouchableOpacity
-            style={[styles.signupButton, loading && styles.disabled]}
+            style={[
+              styles.signupButton,
+              loading && styles.disabled,
+            ]}
             onPress={handleSignup}
             disabled={loading}
             activeOpacity={0.8}
@@ -260,12 +292,16 @@ export default function Signup() {
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.signupButtonText}>Create account</Text>
+              <Text style={styles.signupButtonText}>
+                Create account
+              </Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Already have an account?</Text>
+            <Text style={styles.loginText}>
+              Already have an account?
+            </Text>
             <TouchableOpacity
               onPress={() => router.push('/login')}
               disabled={loading}
